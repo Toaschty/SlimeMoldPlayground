@@ -1,0 +1,930 @@
+[gd_scene load_steps=41 format=3 uid="uid://dfswb1ieos0p5"]
+
+[ext_resource type="Script" path="res://Scripts/BoidController.gd" id="2_8wy54"]
+[ext_resource type="Texture2D" uid="uid://tcjr8gsyjx2y" path="res://Textures/Arrow.png" id="2_jsrvt"]
+[ext_resource type="Script" path="res://Scripts/NumberEdit.gd" id="3_x8ois"]
+[ext_resource type="Texture2D" uid="uid://cmqnb336hrd2q" path="res://Textures/Arrow_Highlight.png" id="3_xj46j"]
+[ext_resource type="Shader" path="res://Shader/ColorShader.gdshader" id="4_ecsv1"]
+[ext_resource type="Texture2D" uid="uid://j408kigirm4j" path="res://Textures/Checked.png" id="4_xkswe"]
+[ext_resource type="Texture2D" uid="uid://ctdudi5a0b2d7" path="res://Textures/Unchecked.png" id="5_qwsi5"]
+[ext_resource type="Texture2D" uid="uid://cythfnfpcvocq" path="res://Textures/Save.png" id="10_ginub"]
+[ext_resource type="Texture2D" uid="uid://dyctjtrw08cwa" path="res://Textures/Save_Highlight.png" id="11_8nkt0"]
+
+[sub_resource type="GDScript" id="GDScript_p77wx"]
+script/source = "extends Node
+
+func _process(delta: float) -> void:
+	DisplayServer.window_set_title(\"SlimeMoldPlayground - FPS \" + str(Engine.get_frames_per_second()))
+"
+
+[sub_resource type="GDScript" id="GDScript_n0mb3"]
+script/source = "extends HSplitContainer
+
+func _on_settings_pressed() -> void:
+	# Flip collapse state
+	collapsed = !collapsed
+	
+	# Flip visible state of children
+	$SettingsArea.visible = !$SettingsArea.visible
+"
+
+[sub_resource type="GDScript" id="GDScript_5rs3a"]
+resource_name = "SettingsController"
+script/source = "extends MarginContainer
+
+@onready var map_size_x : LineEdit = $\"Settings Area Main/Settings Section/Section Margin/Settings Main/Map Settings/Size X/Size X Input\"
+@onready var map_size_y : LineEdit = $\"Settings Area Main/Settings Section/Section Margin/Settings Main/Map Settings/Size Y/Size Y Input\"
+@onready var corners : LineEdit = $\"Settings Area Main/Settings Section/Section Margin/Settings Main/Map Settings/Corners/Corners Input\"
+@onready var centralizedSpawn : CheckBox = $\"Settings Area Main/Settings Section/Section Margin/Settings Main/Boid Settings/CentralizedSpawn/CentralizedSpawn Input\"
+@onready var count : LineEdit = $\"Settings Area Main/Settings Section/Section Margin/Settings Main/Boid Settings/Count/Count Input\"
+
+# Restart simulation
+func _on_restart_pressed() -> void:
+	# Read & Save data which requires restart button
+	Settings.map_size.x = float(map_size_x.text)
+	Settings.map_size.y = float(map_size_y.text)
+	Settings.corners = float(corners.text)
+	Settings.centralizedSpawn = centralizedSpawn.button_pressed
+	Settings.count = int(count.text)
+	
+	$\"../../BoidController\"._ready()
+
+# Change speed of boids
+func _on_speed_input_text_changed(new_text: String) -> void:
+	Settings.speed = float(new_text)
+
+# Change trail weight of boids
+func _on_deposit_rate_input_text_changed(new_text: String) -> void:
+	Settings.depositRate = float(new_text)
+
+# Change angle of sensors
+func _on_angle_input_text_changed(new_text: String) -> void:
+	var angle_deg : float = float(new_text)
+	Settings.sensor_angle = deg_to_rad(angle_deg)
+
+# Change distance of sensors
+func _on_distance_input_text_changed(new_text: String) -> void:
+	Settings.sensor_distance = float(new_text)
+
+# Change size of sensors
+func _on_size_input_text_changed(new_text: String) -> void:
+	Settings.sensor_size = float(new_text)
+
+# Change threshold of sensors
+func _on_threshold_input_text_changed(new_text: String) -> void:
+	Settings.sensor_threshold = float(new_text)
+
+# Change blue size of decay
+func _on_blur_size_input_text_changed(new_text: String) -> void:
+	Settings.blurSize = float(new_text)
+
+# Change smoothing speed of decayed value
+func _on_smoothing_input_text_changed(new_text: String) -> void:
+	Settings.smoothing = float(new_text)
+
+# Change decay rate of trailmap
+func _on_decay_rate_input_text_changed(new_text: String) -> void:
+	Settings.decayRate = float(new_text)
+"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ctm36"]
+bg_color = Color(1, 1, 1, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+expand_margin_top = 2.0
+expand_margin_bottom = 2.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_yjfe5"]
+bg_color = Color(0.6, 0.6, 0.6, 0)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+expand_margin_left = 2.0
+expand_margin_right = 2.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_8bxld"]
+bg_color = Color(0.6, 0.6, 0.6, 0)
+border_width_bottom = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_xxg24"]
+bg_color = Color(1, 1, 1, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_qe3u7"]
+bg_color = Color(1, 1, 1, 0)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+expand_margin_left = 1.0
+expand_margin_top = 1.0
+expand_margin_right = 1.0
+expand_margin_bottom = 1.0
+
+[sub_resource type="GDScript" id="GDScript_vq4c6"]
+script/source = "extends ColorPickerButton
+
+# Loose focus on outside click
+func _input(event):
+	if event is InputEventMouseButton and event.pressed:
+		var local_position = make_input_local(event)
+		
+		if !Rect2(Vector2.ZERO, size).has_point(local_position.position):
+			release_focus()
+"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_exnt0"]
+bg_color = Color(1, 1, 1, 0)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+expand_margin_left = 1.0
+expand_margin_top = 1.0
+expand_margin_right = 1.0
+expand_margin_bottom = 1.0
+
+[sub_resource type="GDScript" id="GDScript_jsece"]
+script/source = "extends ColorPickerButton
+
+# Loose focus on outside click
+func _input(event):
+	if event is InputEventMouseButton and event.pressed:
+		var local_position = make_input_local(event)
+		
+		if !Rect2(Vector2.ZERO, size).has_point(local_position.position):
+			release_focus()
+"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ggq45"]
+bg_color = Color(1, 1, 1, 0)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_o3akm"]
+bg_color = Color(1, 1, 1, 0)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+expand_margin_left = 2.0
+expand_margin_top = 2.0
+expand_margin_right = 2.0
+expand_margin_bottom = 2.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_sf7qt"]
+bg_color = Color(1, 1, 1, 0)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+expand_margin_left = 1.0
+expand_margin_top = 1.0
+expand_margin_right = 1.0
+expand_margin_bottom = 1.0
+
+[sub_resource type="InputEventKey" id="InputEventKey_brfc1"]
+keycode = 83
+
+[sub_resource type="Shortcut" id="Shortcut_7n3oi"]
+events = [SubResource("InputEventKey_brfc1")]
+
+[sub_resource type="GDScript" id="GDScript_y07st"]
+script/source = "extends Button
+
+# Loose focus on outside click
+func _input(event):
+	if event is InputEventMouseButton and event.pressed:
+		var local_position = make_input_local(event)
+		
+		if !Rect2(Vector2.ZERO, size).has_point(local_position.position):
+			release_focus()
+
+# Loose focus on press
+func _on_pressed() -> void:
+	release_focus()
+"
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hr4k8"]
+bg_color = Color(0, 0, 0, 1)
+
+[sub_resource type="GDScript" id="GDScript_7m0rh"]
+script/source = "extends PanelContainer
+
+@onready var render_viewport : SubViewport = $RenderViewport
+
+# Handle saving of images
+func _on_save_button_pressed() -> void:
+	var time_dict := Time.get_datetime_dict_from_system()
+	var filename : String = \"./export_%d%d%d.png\" % [time_dict.hour, time_dict.minute, time_dict.second]
+	var increment = 0
+	
+	# Check for already existing files
+	while FileAccess.file_exists(filename):
+		increment += 1
+		filename = \"./Exports/export_%d%d%d_%d.png\" % [time_dict.hour, time_dict.minute, time_dict.second, increment]
+	
+	render_viewport.get_texture().get_image().save_png(filename)
+
+# Update viewport resolution
+func _on_simulate_pressed() -> void:
+	render_viewport.size = Settings.map_size
+"
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_k4e58"]
+viewport_path = NodePath("HSplitContainer/RenderArea/RenderViewport")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_atrtx"]
+shader = ExtResource("4_ecsv1")
+shader_parameter/color = Color(0.898039, 0.207843, 0.0509804, 1)
+
+[sub_resource type="Texture2DRD" id="Texture2DRD_p85wy"]
+
+[sub_resource type="GDScript" id="GDScript_5fk8l"]
+script/source = "extends TextureRect
+
+@onready var shader_material : ShaderMaterial = material
+
+func _on_trail_color_changed(color: Color) -> void:
+	shader_material.set_shader_parameter(\"color\", color)
+
+func _on_show_trail_input_toggled(toggled_on: bool) -> void:
+	visible = toggled_on
+"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_dsmy0"]
+shader = ExtResource("4_ecsv1")
+shader_parameter/color = Color(0.0509804, 0.643137, 0.901961, 1)
+
+[sub_resource type="Texture2DRD" id="Texture2DRD_a8o2o"]
+
+[sub_resource type="GDScript" id="GDScript_dbspg"]
+script/source = "extends TextureRect
+
+@onready var shader_material : ShaderMaterial = material
+
+func _on_boids_color_changed(color: Color) -> void:
+	shader_material.set_shader_parameter(\"color\", color)
+
+func _on_show_boids_input_toggled(toggled_on: bool) -> void:
+	visible = toggled_on
+"
+
+[sub_resource type="InputEventKey" id="InputEventKey_08cfx"]
+device = -1
+keycode = 124
+unicode = 60
+
+[sub_resource type="Shortcut" id="Shortcut_xtec3"]
+events = [SubResource("InputEventKey_08cfx")]
+
+[sub_resource type="GDScript" id="GDScript_3b500"]
+script/source = "extends TextureButton
+
+func _on_pressed():
+	flip_h = !flip_h
+"
+
+[sub_resource type="InputEventKey" id="InputEventKey_4o3uu"]
+device = -1
+ctrl_pressed = true
+keycode = 83
+unicode = 115
+
+[sub_resource type="Shortcut" id="Shortcut_p8qh4"]
+events = [SubResource("InputEventKey_4o3uu")]
+
+[node name="World" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+
+[node name="FPSCounter" type="Node" parent="."]
+script = SubResource("GDScript_p77wx")
+
+[node name="BoidController" type="Node" parent="."]
+script = ExtResource("2_8wy54")
+
+[node name="HSplitContainer" type="HSplitContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+split_offset = -9999
+script = SubResource("GDScript_n0mb3")
+
+[node name="SettingsArea" type="MarginContainer" parent="HSplitContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_bottom = 10
+script = SubResource("GDScript_5rs3a")
+
+[node name="Settings Area Main" type="VBoxContainer" parent="HSplitContainer/SettingsArea"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="Settings Section" type="ScrollContainer" parent="HSplitContainer/SettingsArea/Settings Area Main"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="Section Margin" type="MarginContainer" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/margin_right = 10
+
+[node name="Settings Main" type="VBoxContainer" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="General Settings" type="VBoxContainer" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main"]
+layout_mode = 2
+
+[node name="General Settings" type="Label" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/General Settings"]
+layout_mode = 2
+text = "General Settings"
+horizontal_alignment = 1
+
+[node name="Split" type="Panel" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/General Settings"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_ctm36")
+
+[node name="ShowBoids" type="HBoxContainer" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/General Settings"]
+layout_mode = 2
+tooltip_text = "Visibility of boids"
+theme_override_constants/separation = 10
+
+[node name="ShowBoids" type="Label" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/General Settings/ShowBoids"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Show Boids"
+
+[node name="ShowBoids Input" type="CheckBox" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/General Settings/ShowBoids"]
+custom_minimum_size = Vector2(24, 28)
+layout_mode = 2
+size_flags_horizontal = 10
+theme_override_styles/focus = SubResource("StyleBoxFlat_yjfe5")
+theme_override_styles/hover_pressed = SubResource("StyleBoxFlat_yjfe5")
+theme_override_styles/hover = SubResource("StyleBoxFlat_yjfe5")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_yjfe5")
+theme_override_styles/normal = SubResource("StyleBoxFlat_yjfe5")
+theme_override_icons/checked = ExtResource("4_xkswe")
+theme_override_icons/unchecked = ExtResource("5_qwsi5")
+button_pressed = true
+
+[node name="ShowTrail" type="HBoxContainer" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/General Settings"]
+layout_mode = 2
+tooltip_text = "Visibility of trail map"
+theme_override_constants/separation = 10
+
+[node name="ShowTrail" type="Label" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/General Settings/ShowTrail"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Show Trail"
+
+[node name="ShowTrail Input" type="CheckBox" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/General Settings/ShowTrail"]
+custom_minimum_size = Vector2(24, 28)
+layout_mode = 2
+size_flags_horizontal = 10
+theme_override_styles/focus = SubResource("StyleBoxFlat_yjfe5")
+theme_override_styles/hover_pressed = SubResource("StyleBoxFlat_yjfe5")
+theme_override_styles/hover = SubResource("StyleBoxFlat_yjfe5")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_yjfe5")
+theme_override_styles/normal = SubResource("StyleBoxFlat_yjfe5")
+theme_override_icons/checked = ExtResource("4_xkswe")
+theme_override_icons/unchecked = ExtResource("5_qwsi5")
+button_pressed = true
+
+[node name="Spacing" type="MarginContainer" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/General Settings"]
+layout_mode = 2
+theme_override_constants/margin_top = 15
+
+[node name="Map Settings" type="VBoxContainer" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main"]
+layout_mode = 2
+
+[node name="Map Settings" type="Label" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Map Settings"]
+layout_mode = 2
+text = "Map Settings"
+horizontal_alignment = 1
+
+[node name="Split" type="Panel" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Map Settings"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_ctm36")
+
+[node name="Size X" type="HBoxContainer" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Map Settings"]
+layout_mode = 2
+tooltip_text = "Width of the map texture"
+theme_override_constants/separation = 10
+
+[node name="Size X" type="Label" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Map Settings/Size X"]
+layout_mode = 2
+text = "Size X"
+
+[node name="Size X Input" type="LineEdit" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Map Settings/Size X"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/normal = SubResource("StyleBoxFlat_8bxld")
+text = "512"
+virtual_keyboard_type = 2
+script = ExtResource("3_x8ois")
+integer_only = true
+
+[node name="Size Y" type="HBoxContainer" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Map Settings"]
+layout_mode = 2
+tooltip_text = "Height of the map texture"
+theme_override_constants/separation = 10
+
+[node name="Size Y" type="Label" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Map Settings/Size Y"]
+layout_mode = 2
+text = "Size Y"
+
+[node name="Size Y Input" type="LineEdit" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Map Settings/Size Y"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/normal = SubResource("StyleBoxFlat_8bxld")
+text = "512"
+script = ExtResource("3_x8ois")
+integer_only = true
+
+[node name="Corners" type="HBoxContainer" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Map Settings"]
+layout_mode = 2
+tooltip_text = "Roundness of map's corners"
+theme_override_constants/separation = 10
+
+[node name="Corners" type="Label" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Map Settings/Corners"]
+layout_mode = 2
+text = "Corners"
+
+[node name="Corners Input" type="LineEdit" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Map Settings/Corners"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/normal = SubResource("StyleBoxFlat_8bxld")
+text = "50"
+script = ExtResource("3_x8ois")
+integer_only = true
+
+[node name="Spacing" type="MarginContainer" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Map Settings"]
+layout_mode = 2
+theme_override_constants/margin_top = 15
+
+[node name="Boid Settings" type="VBoxContainer" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main"]
+layout_mode = 2
+
+[node name="Boid Settings" type="Label" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Boid Settings"]
+layout_mode = 2
+text = "Boid Settings"
+horizontal_alignment = 1
+
+[node name="Split" type="Panel" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Boid Settings"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_ctm36")
+
+[node name="CentralizedSpawn" type="HBoxContainer" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Boid Settings"]
+layout_mode = 2
+tooltip_text = "Central/Random spawn of  boids"
+theme_override_constants/separation = 10
+
+[node name="CentralizedSpawn" type="Label" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Boid Settings/CentralizedSpawn"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "CentralizedSpawn"
+
+[node name="CentralizedSpawn Input" type="CheckBox" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Boid Settings/CentralizedSpawn"]
+custom_minimum_size = Vector2(24, 28)
+layout_mode = 2
+size_flags_horizontal = 10
+theme_override_styles/focus = SubResource("StyleBoxFlat_yjfe5")
+theme_override_styles/hover_pressed = SubResource("StyleBoxFlat_yjfe5")
+theme_override_styles/hover = SubResource("StyleBoxFlat_yjfe5")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_yjfe5")
+theme_override_styles/normal = SubResource("StyleBoxFlat_yjfe5")
+theme_override_icons/checked = ExtResource("4_xkswe")
+theme_override_icons/unchecked = ExtResource("5_qwsi5")
+button_pressed = true
+
+[node name="Count" type="HBoxContainer" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Boid Settings"]
+layout_mode = 2
+tooltip_text = "Amount of boids"
+theme_override_constants/separation = 10
+
+[node name="Count" type="Label" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Boid Settings/Count"]
+layout_mode = 2
+text = "Count"
+
+[node name="Count Input" type="LineEdit" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Boid Settings/Count"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/normal = SubResource("StyleBoxFlat_8bxld")
+text = "1000000"
+script = ExtResource("3_x8ois")
+integer_only = true
+
+[node name="Speed" type="HBoxContainer" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Boid Settings"]
+layout_mode = 2
+tooltip_text = "Movement speed of boids"
+theme_override_constants/separation = 10
+
+[node name="Speed" type="Label" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Boid Settings/Speed"]
+layout_mode = 2
+text = "Speed"
+
+[node name="Speed Input" type="LineEdit" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Boid Settings/Speed"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/normal = SubResource("StyleBoxFlat_8bxld")
+text = "1.0"
+script = ExtResource("3_x8ois")
+
+[node name="DepositRate" type="HBoxContainer" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Boid Settings"]
+layout_mode = 2
+tooltip_text = "Amount the trail map increase per update step"
+theme_override_constants/separation = 10
+
+[node name="DepositRate" type="Label" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Boid Settings/DepositRate"]
+layout_mode = 2
+text = "DepositRate"
+
+[node name="DepositRate Input" type="LineEdit" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Boid Settings/DepositRate"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/normal = SubResource("StyleBoxFlat_8bxld")
+text = "1.0"
+script = ExtResource("3_x8ois")
+
+[node name="Spacing" type="MarginContainer" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Boid Settings"]
+layout_mode = 2
+theme_override_constants/margin_top = 15
+
+[node name="Sensor Settings" type="VBoxContainer" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main"]
+layout_mode = 2
+
+[node name="Sensor Settings" type="Label" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Sensor Settings"]
+layout_mode = 2
+text = "Sensor Settings"
+horizontal_alignment = 1
+
+[node name="Split" type="Panel" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Sensor Settings"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_ctm36")
+
+[node name="Size" type="HBoxContainer" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Sensor Settings"]
+layout_mode = 2
+tooltip_text = "Sensor area in a SIZExSIZE square"
+theme_override_constants/separation = 10
+
+[node name="Size" type="Label" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Sensor Settings/Size"]
+layout_mode = 2
+text = "Size"
+
+[node name="Size Input" type="LineEdit" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Sensor Settings/Size"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/normal = SubResource("StyleBoxFlat_8bxld")
+text = "3"
+script = ExtResource("3_x8ois")
+integer_only = true
+
+[node name="Distance" type="HBoxContainer" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Sensor Settings"]
+layout_mode = 2
+tooltip_text = "Distance from boid to sensors"
+theme_override_constants/separation = 10
+
+[node name="Distance" type="Label" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Sensor Settings/Distance"]
+layout_mode = 2
+text = "Distance"
+
+[node name="Distance Input" type="LineEdit" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Sensor Settings/Distance"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/normal = SubResource("StyleBoxFlat_8bxld")
+text = "10"
+script = ExtResource("3_x8ois")
+integer_only = true
+
+[node name="Angle" type="HBoxContainer" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Sensor Settings"]
+layout_mode = 2
+tooltip_text = "Angle of left and right sensors relative to forward direction"
+theme_override_constants/separation = 10
+
+[node name="Angle" type="Label" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Sensor Settings/Angle"]
+layout_mode = 2
+text = "Angle"
+
+[node name="Angle Input" type="LineEdit" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Sensor Settings/Angle"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/normal = SubResource("StyleBoxFlat_8bxld")
+text = "45"
+script = ExtResource("3_x8ois")
+
+[node name="Threshold" type="HBoxContainer" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Sensor Settings"]
+layout_mode = 2
+tooltip_text = "Threshold for sensor activation"
+theme_override_constants/separation = 10
+
+[node name="Threshold" type="Label" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Sensor Settings/Threshold"]
+layout_mode = 2
+text = "Threshold"
+
+[node name="Threshold Input" type="LineEdit" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Sensor Settings/Threshold"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/normal = SubResource("StyleBoxFlat_8bxld")
+text = "0.0"
+script = ExtResource("3_x8ois")
+
+[node name="Spacing" type="MarginContainer" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Sensor Settings"]
+layout_mode = 2
+theme_override_constants/margin_top = 15
+
+[node name="Decay Settings" type="VBoxContainer" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main"]
+layout_mode = 2
+
+[node name="Decay Settings" type="Label" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Decay Settings"]
+layout_mode = 2
+text = "Decay Settings"
+horizontal_alignment = 1
+
+[node name="Split" type="Panel" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Decay Settings"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_ctm36")
+
+[node name="DecayRate" type="HBoxContainer" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Decay Settings"]
+layout_mode = 2
+tooltip_text = "Rate of trail map decay"
+theme_override_constants/separation = 10
+
+[node name="DecayRate" type="Label" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Decay Settings/DecayRate"]
+layout_mode = 2
+text = "DecayRate"
+
+[node name="DecayRate Input" type="LineEdit" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Decay Settings/DecayRate"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/normal = SubResource("StyleBoxFlat_8bxld")
+text = "0.6"
+script = ExtResource("3_x8ois")
+
+[node name="Smoothing" type="HBoxContainer" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Decay Settings"]
+layout_mode = 2
+tooltip_text = "Strength of interpolation for smoothing trail map values"
+theme_override_constants/separation = 10
+
+[node name="Smoothing" type="Label" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Decay Settings/Smoothing"]
+layout_mode = 2
+text = "Smoothing"
+
+[node name="Smoothing Input" type="LineEdit" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Decay Settings/Smoothing"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/normal = SubResource("StyleBoxFlat_8bxld")
+text = "0.5"
+script = ExtResource("3_x8ois")
+
+[node name="BlurSize" type="HBoxContainer" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Decay Settings"]
+layout_mode = 2
+tooltip_text = "Size of blur area as a SIZExSIZE square"
+theme_override_constants/separation = 10
+
+[node name="BlurSize" type="Label" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Decay Settings/BlurSize"]
+layout_mode = 2
+text = "BlurSize"
+
+[node name="BlurSize Input" type="LineEdit" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Decay Settings/BlurSize"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/normal = SubResource("StyleBoxFlat_8bxld")
+text = "1"
+script = ExtResource("3_x8ois")
+integer_only = true
+
+[node name="Spacing" type="MarginContainer" parent="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Decay Settings"]
+layout_mode = 2
+theme_override_constants/margin_top = 15
+
+[node name="Simulate Section" type="MarginContainer" parent="HSplitContainer/SettingsArea/Settings Area Main"]
+layout_mode = 2
+theme_override_constants/margin_right = 17
+
+[node name="VBoxContainer" type="VBoxContainer" parent="HSplitContainer/SettingsArea/Settings Area Main/Simulate Section"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Split1" type="Panel" parent="HSplitContainer/SettingsArea/Settings Area Main/Simulate Section/VBoxContainer"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_ctm36")
+
+[node name="Color Buttons" type="HBoxContainer" parent="HSplitContainer/SettingsArea/Settings Area Main/Simulate Section/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Boids" type="ColorPickerButton" parent="HSplitContainer/SettingsArea/Settings Area Main/Simulate Section/VBoxContainer/Color Buttons"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/focus = SubResource("StyleBoxFlat_xxg24")
+theme_override_styles/hover = SubResource("StyleBoxFlat_qe3u7")
+theme_override_styles/normal = SubResource("StyleBoxFlat_xxg24")
+text = "Boid"
+color = Color(0.0509804, 0.643137, 0.901961, 1)
+script = SubResource("GDScript_vq4c6")
+
+[node name="Text" type="Label" parent="HSplitContainer/SettingsArea/Settings Area Main/Simulate Section/VBoxContainer/Color Buttons/Boids"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "Boid"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Trail" type="ColorPickerButton" parent="HSplitContainer/SettingsArea/Settings Area Main/Simulate Section/VBoxContainer/Color Buttons"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/focus = SubResource("StyleBoxFlat_xxg24")
+theme_override_styles/hover = SubResource("StyleBoxFlat_exnt0")
+theme_override_styles/normal = SubResource("StyleBoxFlat_xxg24")
+text = "Trail"
+color = Color(0.898039, 0.207843, 0.0509804, 1)
+script = SubResource("GDScript_jsece")
+
+[node name="Trail" type="Label" parent="HSplitContainer/SettingsArea/Settings Area Main/Simulate Section/VBoxContainer/Color Buttons/Trail"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "Trail"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Split2" type="Panel" parent="HSplitContainer/SettingsArea/Settings Area Main/Simulate Section/VBoxContainer"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_ctm36")
+
+[node name="Simulate" type="Button" parent="HSplitContainer/SettingsArea/Settings Area Main/Simulate Section/VBoxContainer"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+theme_override_styles/focus = SubResource("StyleBoxFlat_ggq45")
+theme_override_styles/hover = SubResource("StyleBoxFlat_o3akm")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_sf7qt")
+theme_override_styles/normal = SubResource("StyleBoxFlat_ggq45")
+shortcut = SubResource("Shortcut_7n3oi")
+text = ">> Simulate <<"
+script = SubResource("GDScript_y07st")
+
+[node name="RenderArea" type="PanelContainer" parent="HSplitContainer"]
+layout_mode = 2
+mouse_filter = 1
+theme_override_styles/panel = SubResource("StyleBoxFlat_hr4k8")
+script = SubResource("GDScript_7m0rh")
+
+[node name="RenderTexture" type="TextureRect" parent="HSplitContainer/RenderArea"]
+texture_filter = 1
+layout_mode = 2
+texture = SubResource("ViewportTexture_k4e58")
+expand_mode = 1
+
+[node name="RenderViewport" type="SubViewport" parent="HSplitContainer/RenderArea"]
+canvas_item_default_texture_filter = 0
+
+[node name="TrailMap" type="TextureRect" parent="HSplitContainer/RenderArea/RenderViewport"]
+texture_filter = 1
+material = SubResource("ShaderMaterial_atrtx")
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+texture = SubResource("Texture2DRD_p85wy")
+expand_mode = 1
+script = SubResource("GDScript_5fk8l")
+
+[node name="Boids" type="TextureRect" parent="HSplitContainer/RenderArea/RenderViewport"]
+texture_filter = 1
+material = SubResource("ShaderMaterial_dsmy0")
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+texture = SubResource("Texture2DRD_a8o2o")
+expand_mode = 1
+script = SubResource("GDScript_dbspg")
+
+[node name="MenuButtons" type="MarginContainer" parent="HSplitContainer/RenderArea"]
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 0
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 5
+theme_override_constants/margin_bottom = 5
+
+[node name="VBoxContainer" type="VBoxContainer" parent="HSplitContainer/RenderArea/MenuButtons"]
+layout_mode = 2
+
+[node name="SettingsToggle" type="TextureButton" parent="HSplitContainer/RenderArea/MenuButtons/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 0
+tooltip_text = "Toggle settings menu"
+shortcut = SubResource("Shortcut_xtec3")
+texture_normal = ExtResource("2_jsrvt")
+texture_hover = ExtResource("3_xj46j")
+flip_h = true
+script = SubResource("GDScript_3b500")
+
+[node name="SaveButton" type="TextureButton" parent="HSplitContainer/RenderArea/MenuButtons/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 0
+tooltip_text = "Save current frame as png"
+shortcut = SubResource("Shortcut_p8qh4")
+texture_normal = ExtResource("10_ginub")
+texture_hover = ExtResource("11_8nkt0")
+
+[connection signal="toggled" from="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/General Settings/ShowBoids/ShowBoids Input" to="HSplitContainer/RenderArea/RenderViewport/Boids" method="_on_show_boids_input_toggled"]
+[connection signal="toggled" from="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/General Settings/ShowTrail/ShowTrail Input" to="HSplitContainer/RenderArea/RenderViewport/TrailMap" method="_on_show_trail_input_toggled"]
+[connection signal="text_changed" from="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Map Settings/Size X/Size X Input" to="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Map Settings/Size X/Size X Input" method="_on_text_changed"]
+[connection signal="text_changed" from="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Map Settings/Size Y/Size Y Input" to="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Map Settings/Size Y/Size Y Input" method="_on_text_changed"]
+[connection signal="text_changed" from="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Map Settings/Corners/Corners Input" to="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Map Settings/Corners/Corners Input" method="_on_text_changed"]
+[connection signal="text_changed" from="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Boid Settings/Count/Count Input" to="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Boid Settings/Count/Count Input" method="_on_text_changed"]
+[connection signal="text_changed" from="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Boid Settings/Speed/Speed Input" to="HSplitContainer/SettingsArea" method="_on_speed_input_text_changed"]
+[connection signal="text_changed" from="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Boid Settings/Speed/Speed Input" to="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Boid Settings/Speed/Speed Input" method="_on_text_changed"]
+[connection signal="text_changed" from="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Boid Settings/DepositRate/DepositRate Input" to="HSplitContainer/SettingsArea" method="_on_deposit_rate_input_text_changed"]
+[connection signal="text_changed" from="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Boid Settings/DepositRate/DepositRate Input" to="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Boid Settings/DepositRate/DepositRate Input" method="_on_text_changed"]
+[connection signal="text_changed" from="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Sensor Settings/Size/Size Input" to="HSplitContainer/SettingsArea" method="_on_size_input_text_changed"]
+[connection signal="text_changed" from="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Sensor Settings/Size/Size Input" to="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Sensor Settings/Size/Size Input" method="_on_text_changed"]
+[connection signal="text_changed" from="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Sensor Settings/Distance/Distance Input" to="HSplitContainer/SettingsArea" method="_on_distance_input_text_changed"]
+[connection signal="text_changed" from="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Sensor Settings/Distance/Distance Input" to="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Sensor Settings/Distance/Distance Input" method="_on_text_changed"]
+[connection signal="text_changed" from="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Sensor Settings/Angle/Angle Input" to="HSplitContainer/SettingsArea" method="_on_angle_input_text_changed"]
+[connection signal="text_changed" from="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Sensor Settings/Angle/Angle Input" to="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Sensor Settings/Angle/Angle Input" method="_on_text_changed"]
+[connection signal="text_changed" from="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Sensor Settings/Threshold/Threshold Input" to="HSplitContainer/SettingsArea" method="_on_threshold_input_text_changed"]
+[connection signal="text_changed" from="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Sensor Settings/Threshold/Threshold Input" to="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Sensor Settings/Threshold/Threshold Input" method="_on_text_changed"]
+[connection signal="text_changed" from="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Decay Settings/DecayRate/DecayRate Input" to="HSplitContainer/SettingsArea" method="_on_decay_rate_input_text_changed"]
+[connection signal="text_changed" from="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Decay Settings/DecayRate/DecayRate Input" to="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Decay Settings/DecayRate/DecayRate Input" method="_on_text_changed"]
+[connection signal="text_changed" from="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Decay Settings/Smoothing/Smoothing Input" to="HSplitContainer/SettingsArea" method="_on_smoothing_input_text_changed"]
+[connection signal="text_changed" from="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Decay Settings/Smoothing/Smoothing Input" to="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Decay Settings/Smoothing/Smoothing Input" method="_on_text_changed"]
+[connection signal="text_changed" from="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Decay Settings/BlurSize/BlurSize Input" to="HSplitContainer/SettingsArea" method="_on_blur_size_input_text_changed"]
+[connection signal="text_changed" from="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Decay Settings/BlurSize/BlurSize Input" to="HSplitContainer/SettingsArea/Settings Area Main/Settings Section/Section Margin/Settings Main/Decay Settings/BlurSize/BlurSize Input" method="_on_text_changed"]
+[connection signal="color_changed" from="HSplitContainer/SettingsArea/Settings Area Main/Simulate Section/VBoxContainer/Color Buttons/Boids" to="HSplitContainer/RenderArea/RenderViewport/Boids" method="_on_boids_color_changed"]
+[connection signal="color_changed" from="HSplitContainer/SettingsArea/Settings Area Main/Simulate Section/VBoxContainer/Color Buttons/Trail" to="HSplitContainer/RenderArea/RenderViewport/TrailMap" method="_on_trail_color_changed"]
+[connection signal="pressed" from="HSplitContainer/SettingsArea/Settings Area Main/Simulate Section/VBoxContainer/Simulate" to="HSplitContainer/SettingsArea" method="_on_restart_pressed"]
+[connection signal="pressed" from="HSplitContainer/SettingsArea/Settings Area Main/Simulate Section/VBoxContainer/Simulate" to="HSplitContainer/SettingsArea/Settings Area Main/Simulate Section/VBoxContainer/Simulate" method="_on_pressed"]
+[connection signal="pressed" from="HSplitContainer/SettingsArea/Settings Area Main/Simulate Section/VBoxContainer/Simulate" to="HSplitContainer/RenderArea" method="_on_simulate_pressed"]
+[connection signal="pressed" from="HSplitContainer/RenderArea/MenuButtons/VBoxContainer/SettingsToggle" to="HSplitContainer" method="_on_settings_pressed"]
+[connection signal="pressed" from="HSplitContainer/RenderArea/MenuButtons/VBoxContainer/SettingsToggle" to="HSplitContainer/RenderArea/MenuButtons/VBoxContainer/SettingsToggle" method="_on_pressed"]
+[connection signal="pressed" from="HSplitContainer/RenderArea/MenuButtons/VBoxContainer/SaveButton" to="HSplitContainer/RenderArea" method="_on_save_button_pressed"]
